@@ -1,36 +1,57 @@
 #!/usr/bin/env node
 
 const fs = require('fs');
-const parser = require('@babel/parser');
-const traverse = require('@babel/traverse').default;
-const generate = require('@babel/generator').default;
-const t = require('@babel/types');
+const jscodeshift = require('jscodeshift');
 const yargs = require('yargs');
 const getStdin = require('get-stdin');
 
+/**
+ * Finds a method in the AST by its name.
+ * 
+ * @param {Object} ast - The AST to search within.
+ * @param {string} methodName - The name of the method to find.
+ * @returns {Object|null} - The found method node or null if not found.
+ */
 function findMethod(ast, methodName) {
   let foundNode = null;
-  traverse(ast, {
-    enter(path) {
-      if (
-        (t.isFunctionDeclaration(path.node) && path.node.id.name === methodName) ||
-        (t.isObjectMethod(path.node) && path.node.key.name === methodName) ||
-        (t.isClassMethod(path.node) && path.node.key.name === methodName)
-      ) {
+  jscodeshift(ast)
+    .find(jscodeshift.FunctionDeclaration, { id: { name: methodName } })
+    .forEach(path => {
+      foundNode = path;
+      path.stop();
+    });
+
+  if (!foundNode) {
+    jscodeshift(ast)
+      .find(jscodeshift.ObjectMethod, { key: { name: methodName } })
+      .forEach(path => {
         foundNode = path;
         path.stop();
-      }
-    }
-  });
+      });
+  }
+
+  if (!foundNode) {
+    jscodeshift(ast)
+      .find(jscodeshift.ClassMethod, { key: { name: methodName } })
+      .forEach(path => {
+        foundNode = path;
+        path.stop();
+      });
+  }
+
   return foundNode;
 }
 
+/**
+ * Performs the specified action (replace, delete, echo) on a method in a JavaScript file.
+ * 
+ * @param {string} filename - The name of the file to operate on.
+ * @param {string} methodName - The name of the method to operate on.
+ * @param {string} action - The action to perform (replace, delete, echo).
+ */
 async function spaste(filename, methodName, action) {
   const code = fs.readFileSync(filename, 'utf-8');
-  const ast = parser.parse(code, {
-    sourceType: 'module',
-    plugins: ['jsx', 'typescript', 'classProperties', 'decorators-legacy']
-  });
+  const ast = jscodeshift(code);
 
   const methodPath = findMethod(ast, methodName);
 
@@ -42,24 +63,21 @@ async function spaste(filename, methodName, action) {
   switch (action) {
     case 'replace':
       const replacementCode = await getStdin();
-      const replacementAst = parser.parse(replacementCode, {
-        sourceType: 'module',
-        plugins: ['jsx', 'typescript', 'classProperties', 'decorators-legacy']
-      });
-      methodPath.replaceWith(replacementAst.program.body[0]);
+      const replacementAst = jscodeshift(replacementCode);
+      methodPath.replaceWith(replacementAst.nodes()[0]);
       break;
     case 'delete':
       methodPath.remove();
       break;
     case 'echo':
-      const methodCode = generate(methodPath.node, {}, code).code;
+      const methodCode = methodPath.toSource();
       console.log(methodCode);
       return;
   }
 
   if (action !== 'echo') {
-    const output = generate(ast, { retainLines: true }, code);
-    fs.writeFileSync(filename, output.code);
+    const output = ast.toSource({ quote: 'single' });
+    fs.writeFileSync(filename, output);
     console.log(`Method "${methodName}" has been ${action}d in ${filename}`);
   }
 }
