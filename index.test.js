@@ -3,7 +3,7 @@ const path = require('path');
 const { exec } = require('child_process');
 const os = require('os');
 
-const spasteCmd = 'node ' + path.resolve(__dirname, 'spaste.js');
+const spasteCmd = 'node ' + path.resolve(__dirname, 'index.js');
 
 describe('spaste-cli', () => {
   let tmpDir;

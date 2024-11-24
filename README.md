@@ -73,12 +73,11 @@ This command outputs the content of `myMethod` from `index.js` to the console.
 3. View the content of a method named 'initialize':
    ```bash
    spaste main.js -e initialize
-
+   ```
 
 ## Examples with LLM Prompting
 
 `spaste-cli` can be particularly powerful when used in combination with [Large Language Models (LLMs)](https://llm.datasette.io/en/stable/) for code generation and modification. Here are some examples:
-
 
 ### Optimizing an Existing Method
 
@@ -104,7 +103,6 @@ spaste myfile.js -e targetMethod | llm "Write Jest unit tests for this method" >
 
 This command extracts a method, uses an LLM to generate unit tests for it, and appends those tests to a test file.
 
-
 ### Refactoring for a New Feature
 
 ```bash
@@ -114,7 +112,6 @@ spaste myfile.js -e oldMethod | llm "Refactor this method to include a new param
 This example extracts a method, asks an LLM to refactor it to include a new feature, and then updates the file with the refactored method.
 
 These examples demonstrate how `spaste-cli` can be seamlessly integrated with LLM tools to automate various code modification tasks. By combining the power of AI-generated code suggestions with precise method manipulation, developers can significantly streamline their workflow.
-   ```
 
 ## Requirements
 
@@ -126,4 +123,4 @@ Contributions are welcome! Please feel free to submit a Pull Request.
 
 ## License
 
-This project is licensed under the MIT License.# spaste-cli
+This project is licensed under the MIT License.
